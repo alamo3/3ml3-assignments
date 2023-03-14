@@ -44,9 +44,6 @@ def model(x,w):
     a = w[0] + np.dot(x.T, w[1:])
     return a.T
 
-def sigmoid(t):
-    return np.tanh(t)
-
 def softmax(w):
     # compute the least squares cost
     cost = np.sum(np.log(1 + np.exp(-y_breast_cancer*(model(x_breast_cancer, w)))))
@@ -58,19 +55,22 @@ def perceptron(w):
 
     return sum_perceptron / float(np.size(y_breast_cancer))
 
-def miscount(w, x, y):
+def miscount(w, x, y, malignant_only = False):
     misclassifications = 0
 
     for i in range(np.size(y)):
         y_pred = -1 if model(x[:,i],w)[0] < 0 else 1
-        y_actual = y[0][i]
+        y_actual = y[i]
+
+        if y_actual == 1 and malignant_only:
+            continue
 
         if y_pred != y_actual:
             misclassifications +=1
 
     return misclassifications
 
-def exercise_1():
+def exercise_1_1_to_4():
     load_breast_cancer_data('breast_cancer_data.csv')
 
     initial_w_softmax = 0.1*np.random.randn(9,1)
@@ -80,16 +80,183 @@ def exercise_1():
     weight_history_perceptron, cost_history_perceptron = gradient_descent(perceptron, 0.1, 1000, initial_w_perception)
     miscount_history_softmax = [miscount(v, x_breast_cancer, y_breast_cancer) for v in weight_history_softmax]
     miscount_history_perceptron = [miscount(v, x_breast_cancer, y_breast_cancer) for v in weight_history_perceptron]
-    print('Misclassifications softmax', miscount_history_softmax[-1])
-    print('Misclassification perceptron', miscount_history_perceptron[-1])
-    fig, axs = plt.subplots(2, 2)
+    miscount_history_softmax_malignant = [miscount(v, x_breast_cancer, y_breast_cancer, malignant_only=True) for v in weight_history_softmax]
+    miscount_history_perceptron_malignant = [miscount(v, x_breast_cancer, y_breast_cancer, malignant_only=True) for v in weight_history_perceptron]
+    print('Misclassifications softmax', miscount_history_softmax_malignant[-1])
+    print('Misclassification perceptron', miscount_history_perceptron_malignant[-1])
+    fig, axs = plt.subplots(3, 2)
+    fig.set_size_inches(18, 20)
     axs[0][0].plot(cost_history_softmax)
+    axs[0][1].plot(cost_history_perceptron)
     axs[1][0].scatter([x for x in range(len(weight_history_softmax))],miscount_history_softmax)
     axs[1][1].scatter([x for x in range(len(weight_history_perceptron))], miscount_history_perceptron)
-    axs[0][1].plot(cost_history_perceptron)
+    axs[2][0].scatter([x for x in range(len(weight_history_softmax))], miscount_history_softmax_malignant)
+    axs[2][1].scatter([x for x in range(len(weight_history_perceptron))], miscount_history_perceptron_malignant)
 
     plt.show()
 
+def sigmoid(t):
+    return 1/(1 + np.exp(-t))
+
+
+yc = []
+# the convex cross-entropy cost function
+lam = 2*10**(-3)
+def cross_entropy(w):
+    # compute sigmoid of model
+    a = sigmoid(model(x_breast_cancer,w))
+    # compute cost of label 0 points
+    ind = np.argwhere(yc == 0)
+    cost = -np.sum(np.log(1 - a[:,ind]))
+    # add cost on label 1 points
+    ind = np.argwhere(yc==1)
+    cost -= np.sum(np.log(a[:,ind]))
+    # add regularizer
+    cost += lam*np.sum(w[1:]**2)
+    # compute cross-entropy
+    return cost/float(np.size(yc))
+
+
+def misclassification_logistic(w, x, y, malignant_only = False):
+    misclassifications = 0
+
+    for i in range(np.size(y)):
+        y_pred = 0 if sigmoid(model(x[:, i], w)[0]) < 0.5 else 1
+        y_actual = y[i]
+
+        if y_actual == 1 and malignant_only:
+            continue
+
+        if y_pred != y_actual:
+            misclassifications += 1
+
+    return misclassifications
+
+def ex_1_5():
+    global yc
+    load_breast_cancer_data('breast_cancer_data.csv')
+
+    a = np.argwhere(y_breast_cancer > 0.9)
+    b = np.argwhere(y_breast_cancer < -0.9)
+    yc = np.arange(699)
+    yc[a] = 1
+    yc[b] = 0
+
+    initial_w = 0.1*np.random.randn(9,1)
+
+    weight_history, cost_history = gradient_descent(cross_entropy,0.6,1000,initial_w)
+    miscount_history_logistic = [misclassification_logistic(v, x_breast_cancer, yc) for v in weight_history]
+    miscount_history_logistic_malignant = [misclassification_logistic(v, x_breast_cancer, yc, malignant_only=True) for v in weight_history]
+
+    print(miscount_history_logistic_malignant[-1])
+
+    fig, axs = plt.subplots(3)
+    fig.set_size_inches(10, 15)
+    axs[0].plot(cost_history)
+    axs[1].scatter([x for x in range(len(weight_history))], miscount_history_logistic)
+    axs[2].scatter([x for x in range(len(weight_history))], miscount_history_logistic_malignant)
+
+    plt.show()
+
+def standard_normalizer(x):
+    # compute the mean and standard deviation of the input
+    x_means = np.nanmean(x,axis = 1)[:,np.newaxis]
+    x_stds = np.nanstd(x,axis = 1)[:,np.newaxis]
+    # check to make sure that x_stds > small threshold, for those not
+    # divide by 1 instead of original standard deviation
+    ind = np.argwhere(x_stds < 10**(-2))
+    if len(ind) > 0:
+        ind = [v[0] for v in ind] # Just keep the row index
+        adjust = np.zeros((x_stds.shape))
+        adjust[ind] = 1.0
+        x_stds += adjust
+    # fill in any nan values with means
+    ind = np.argwhere(np.isnan(x) == True)
+    for i in ind:
+        x[i[0],i[1]] = x_means[i[0]]
+    # create standard normalizer function
+    normalizer = lambda data: (data - x_means)/x_stds
+    # create inverse standard normalizer
+    inverse_normalizer = lambda data: data*x_stds + x_means
+    # return normalizer
+    return normalizer,inverse_normalizer
+
+x_spam = []
+y_spam = []
+
+def softmax_spam(w):
+    # compute the least squares cost
+    cost = np.sum(np.log(1 + np.exp(-y_spam*(model(x_spam, w)))))
+    return cost/float(np.size(y_spam))
+
+def perceptron_spam(w):
+
+    sum_perceptron = np.sum(np.maximum(0, -y_spam*model(x_spam, w)))
+
+    return sum_perceptron / float(np.size(y_spam))
+
+def load_spam_database():
+    data1 = np.loadtxt('spambase_data.csv', delimiter=',')
+
+    global x_spam, y_spam
+
+    x_spam = data1[:-1,:]
+    y_spam = data1[-1:,:]
+
+def miscount_spam(w, x, y):
+
+    miscounts = 0
+
+    for i in range(np.size(y)):
+        y_pred = -1 if model(x[:,i], w) < 0 else 1
+        y_actual = y[0][i]
+
+        if y_pred != y_actual:
+            miscounts += 1
+
+    return miscounts
+
+
+def ex_2():
+    load_spam_database()
+
+    global x_spam, y_spam
+
+    print("Spam database loaded!")
+
+    x_normalizer, x_inverse_normalizer = standard_normalizer(x_spam)
+    y_normalizer, y_inverse_normalizer = standard_normalizer(y_spam)
+
+    x_spam = x_normalizer(x_spam)
+
+    w_initial_softmax = 0.1*np.random.randn(57+1,1)
+    w_initial_perceptron = 0.1*np.random.randn(57+1,1)
+
+    weight_history_softmax, cost_history_softmax = gradient_descent(softmax_spam, 1.0, 3000, w_initial_softmax)
+    weight_history_perceptron, cost_history_perceptron = gradient_descent(perceptron_spam, 0.1, 3000, w_initial_perceptron)
+
+    miscount_history_softmax = [miscount_spam(v, x_spam, y_spam) for v in weight_history_softmax]
+    miscount_history_perceptron = [miscount_spam(v, x_spam, y_spam) for v in weight_history_perceptron]
+
+    fig, axs = plt.subplots(2, 2)
+    fig.set_size_inches(15,15)
+    axs[0][0].plot(cost_history_softmax)
+    axs[0][1].plot(cost_history_perceptron)
+    axs[1][0].scatter([x for x in range(len(weight_history_softmax))], miscount_history_softmax)
+    axs[1][1].scatter([x for x in range(len(weight_history_perceptron))], miscount_history_perceptron)
+
+    plt.show()
+
+    miscount_history_softmax = np.array(miscount_history_softmax)
+    min_miscount = np.argmin(miscount_history_softmax)
+    print('Lowest misclassifications softmax:', miscount_history_softmax[min_miscount])
+    print('Highest accuracy softmax: ', 1 - miscount_history_softmax[min_miscount] / np.size(y_spam))
+
+    miscount_history_perceptron = np.array(miscount_history_perceptron)
+    min_miscount = np.argmin(miscount_history_perceptron)
+    print('Lowest misclassifications perceptron: ', miscount_history_perceptron[min_miscount])
+    print('Highest accuracy perceptron: ', 1 - miscount_history_perceptron[min_miscount] / np.size(y_spam))
+
 
 if __name__ == "__main__":
-    exercise_1()
+    ex_2()
