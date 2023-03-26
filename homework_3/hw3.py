@@ -60,7 +60,7 @@ def miscount(w, x, y, malignant_only = False):
 
     for i in range(np.size(y)):
         y_pred = -1 if model(x[:,i],w)[0] < 0 else 1
-        y_actual = y[i]
+        y_actual = y[0][i]
 
         if y_actual == 1 and malignant_only:
             continue
@@ -148,7 +148,7 @@ def ex_1_5():
     miscount_history_logistic = [misclassification_logistic(v, x_breast_cancer, yc) for v in weight_history]
     miscount_history_logistic_malignant = [misclassification_logistic(v, x_breast_cancer, yc, malignant_only=True) for v in weight_history]
 
-    print(miscount_history_logistic_malignant[-1])
+    print('Number of malignant misclassified', min(miscount_history_logistic_malignant))
 
     fig, axs = plt.subplots(3)
     fig.set_size_inches(10, 15)
@@ -203,7 +203,7 @@ def load_spam_database():
     x_spam = data1[:-1,:]
     y_spam = data1[-1:,:]
 
-def miscount_spam(w, x, y):
+def miscount_linear_boundary(w, x, y):
 
     miscounts = 0
 
@@ -235,8 +235,8 @@ def ex_2():
     weight_history_softmax, cost_history_softmax = gradient_descent(softmax_spam, 1.0, 3000, w_initial_softmax)
     weight_history_perceptron, cost_history_perceptron = gradient_descent(perceptron_spam, 0.1, 3000, w_initial_perceptron)
 
-    miscount_history_softmax = [miscount_spam(v, x_spam, y_spam) for v in weight_history_softmax]
-    miscount_history_perceptron = [miscount_spam(v, x_spam, y_spam) for v in weight_history_perceptron]
+    miscount_history_softmax = [miscount_linear_boundary(v, x_spam, y_spam) for v in weight_history_softmax]
+    miscount_history_perceptron = [miscount_linear_boundary(v, x_spam, y_spam) for v in weight_history_perceptron]
 
     fig, axs = plt.subplots(2, 2)
     fig.set_size_inches(15,15)
@@ -258,5 +258,100 @@ def ex_2():
     print('Highest accuracy perceptron: ', 1 - miscount_history_perceptron[min_miscount] / np.size(y_spam))
 
 
+x_credit = []
+y_credit = []
+
+def load_credit_dataset():
+    data1 = np.loadtxt('credit_dataset.csv', delimiter=',')
+
+    global x_credit, y_credit
+
+    x_credit = data1[:-1,:]
+    y_credit = data1[-1:,:]
+
+def perceptron_credit(w):
+
+    sum_perceptron = np.sum(np.maximum(0, -y_credit*model(x_credit, w)))
+
+    return sum_perceptron / float(np.size(y_credit))
+
+def ex_3():
+    load_credit_dataset()
+
+    global x_credit, y_credit
+    x_credit_normalizer, x_credit_norm_inv = standard_normalizer(x_credit)
+
+    x_credit = x_credit_normalizer(x_credit)
+
+    w_initial_perceptron = 0.1 * np.random.randn(20 + 1, 1)
+
+    weight_history, cost_history = gradient_descent(perceptron_credit, 0.1, 1000, w_initial_perceptron)
+
+    miscount_history = [miscount_linear_boundary(v,x_credit,y_credit) for v in weight_history]
+
+    fig, axs=plt.subplots(2)
+    axs[0].plot(cost_history)
+    axs[1].scatter([x for x in range(len(weight_history))], miscount_history)
+
+    plt.show()
+
+    miscount_history = np.array(miscount_history)
+
+    misclass_min = np.argmin(miscount_history)
+
+    print('Accuracy of perceptron cost: ', 1 - miscount_history[misclass_min]/np.size(y_credit))
+
+
+x_toy = []
+y_toy = []
+
+lam_2 = 10**-5 # our regularization paramter
+def multiclass_perceptron(w):
+    # pre-compute predictions on all points
+    all_evals = model(x_toy,w)
+    # compute maximum across data points
+    a = np.max(all_evals, axis = 0)
+    # compute cost in compact form using numpy broadcasting
+    b = all_evals[y_toy.astype(int).flatten(),np.arange(np.size(y_toy))]
+    cost = np.sum(a - b)
+    # add regularizer
+    cost = cost + lam_2*np.linalg.norm(w[1:,:],'fro')**2
+    # return average
+    return cost/float(np.size(y_toy))
+
+def load_toy_dataset():
+    data1 = np.loadtxt('3class_data.csv', delimiter=',')
+    global x_toy, y_toy
+
+    x_toy = data1[:-1,:]
+    y_toy = data1[-1:,:]
+
+def plot_decision_boundary(coefficients):
+    b = coefficients[0]
+    x1 = coefficients[1]
+    x2 = coefficients[2]
+
+
+def ex_4():
+
+    load_toy_dataset()
+
+    global x_toy,y_toy
+    x_toy_normalizer,_ = standard_normalizer(x_toy)
+
+#    x_toy = x_toy_normalizer(x_toy)
+
+    w = 0.1 * np.random.randn(3, 3)
+
+    weight_history, cost_history = gradient_descent(multiclass_perceptron, alpha=0.1, max_its=1000, w=w)
+
+    fig, axs = plt.subplots(2)
+    axs[0].plot(cost_history)
+    axs[1].scatter(x_toy[:-1,:], x_toy[-1:,:], c=y_toy)
+    plt.show()
+
+
+
+
 if __name__ == "__main__":
-    ex_2()
+    ex_4()
