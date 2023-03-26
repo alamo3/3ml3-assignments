@@ -1,10 +1,10 @@
 import math
 
 import tensorflow as tf
-import tensorflow.python.data
+
 from autograd import numpy as np
 from autograd import value_and_grad
-import pandas as pd
+
 from tqdm import tqdm
 
 import matplotlib.pyplot as plt
@@ -24,10 +24,11 @@ y_batch = None
 
 def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
-    for i in range(0, lst.shape[1] , n):
-        upper = i+n
-        if i + n >= lst.shape[1]:
-            upper = lst.shape[1]-1
+    chunk_size = math.ceil(lst.shape[1]/n)
+    for i in range(0, lst.shape[1] , chunk_size):
+        upper = i+chunk_size
+        if i + chunk_size > lst.shape[1]:
+            upper = lst.shape[1]
         yield lst[:,i:upper]
 
 
@@ -43,11 +44,13 @@ def gradient_descent(g,w,x_train,y_train,alpha,max_its, batch_size):
     y_train_batches = list(chunks(y_train, math.ceil(y_train.shape[1] / batch_size)))
     cost_history = [g(w, x_train_batches[0], y_train_batches[0][0], 0)]
 
+
     gradient = value_and_grad(g)
     for k in tqdm(range(max_its)):
         cost_history_epoch = []
         weight_history_epoch = []
-        for j in range(len(x_train_batches)):
+        print('Epoch ', k)
+        for j in tqdm(range(len(x_train_batches))):
             x_batch = x_train_batches[j]
             y_batch = y_train_batches[j]
             # evaluate the gradient, store current weights and cost function value
@@ -90,7 +93,12 @@ w = 0.1*np.random.randn(784+1, 10)
 
 weight_history, cost_history = gradient_descent(g=multiclass_perceptron, w=w, x_train=train_images, y_train=train_labels, alpha=0.001, max_its=5, batch_size=200)
 
-plt.plot(cost_history)
+weight_history_full, cost_history_full = gradient_descent(g=multiclass_perceptron, w=w, x_train=train_images, y_train=train_labels, alpha=0.001, max_its=5, batch_size=60000)
+
+fig, axs = plt.subplots(2)
+
+axs[0].plot(cost_history)
+axs[1].plot(cost_history_full)
 plt.show()
 
 
