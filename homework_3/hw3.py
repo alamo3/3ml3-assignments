@@ -1,6 +1,7 @@
 import autograd.numpy as np
 import matplotlib.pyplot as plt
 from autograd import *
+from tqdm import tqdm
 
 x_breast_cancer = []
 y_breast_cancer = []
@@ -27,7 +28,7 @@ def gradient_descent(g,alpha,max_its,w):
     cost_history = [g(w)]    # container for corresponding cost function history
 
     gradient = value_and_grad(g)
-    for k in range(max_its):
+    for k in tqdm(range(max_its)):
         # evaluate the gradient, store current weights and cost function value
         cost_eval, grad_eval = gradient(w)
 
