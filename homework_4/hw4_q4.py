@@ -17,13 +17,19 @@ def compute_pcs(X,lam):
     return D,V
 
 
-X_original = np.loadtxt('2d_span_data.csv',delimiter=',')
+X_original = np.zeros(shape=(3, 6))
+X_original[:,0] = np.array([1, 2, 3])
+X_original[:,1] = np.array([4, 5, 6])
+X_original[:,2] = np.array([2, 4, 6])
+X_original[:,3] = np.array([1, 4, 2])
+X_original[:,4] = np.array([3, 1, 2])
+X_original[:,5] = np.array([4, 4, 4])
 
 x_center = center(X_original)
 
 D,V = compute_pcs(x_center, 10**(-5))
 
-encoded_points = np.zeros(shape=(2,x_center.shape[1]))
+encoded_points = np.zeros(shape=(3,x_center.shape[1]))
 
 projection_matrix = np.array([V[0], V[1]]).T
 for i in range(x_center.shape[1]):
