@@ -85,5 +85,5 @@ if __name__ == "__main__":
     print(x.shape)
     print(y.shape)
 
-
+    #create_train_model(x, y)
     create_train_dense_model(x, y)

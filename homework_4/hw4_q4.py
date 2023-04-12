@@ -17,13 +17,7 @@ def compute_pcs(X,lam):
     return D,V
 
 
-X_original = np.zeros(shape=(3, 6))
-X_original[:,0] = np.array([1, 2, 3])
-X_original[:,1] = np.array([4, 5, 6])
-X_original[:,2] = np.array([2, 4, 6])
-X_original[:,3] = np.array([1, 4, 2])
-X_original[:,4] = np.array([3, 1, 2])
-X_original[:,5] = np.array([4, 4, 4])
+X_original = np.loadtxt('2d_span_data_centered.csv',delimiter=',')
 
 x_center = center(X_original)
 
@@ -37,12 +31,12 @@ for i in range(x_center.shape[1]):
     encoded_points[0][i] = encoded_point_i[0]
     encoded_points[1][i] = encoded_point_i[1]
 
-fig, axs = plt.subplots(2)
-fig.set_size_inches(3.5, 6)
-axs[0].scatter(x_center[0,:], x_center[1,:])
-axs[0].arrow(0, 0, V[0][0], V[0][1], width = 0.1, head_width = 0.2)
-axs[0].arrow(0, 0, V[1][0], V[1][1], width = 0.1, head_width = 0.2)
-axs[1].scatter(encoded_points[0,:], encoded_points[1,:])
+fig, axs = plt.subplots(nrows=1, ncols=2)
+fig.set_size_inches(6, 4)
+fig.axes[0].scatter(x_center[0,:], x_center[1,:])
+fig.axes[0].arrow(0, 0, V[0][0], V[0][1], width = 0.1, head_width = 0.2)
+fig.axes[0].arrow(0, 0, V[1][0], V[1][1], width = 0.1, head_width = 0.2)
+fig.axes[1].scatter(encoded_points[0,:], encoded_points[1,:])
 
 
 plt.show()

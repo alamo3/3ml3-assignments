@@ -26,8 +26,6 @@ def update_assignments(data, centroids):
                 min_dist = dist
 
 
-
-
 def get_points_in_cluster(data, centroid_id):
     points = []
     for i in range(len(data)):
@@ -70,6 +68,7 @@ def init_centroids(num_centroids, data):
 
     return centroids
 
+
 def load_data():
     blobs_data = np.loadtxt('blobs.dat')
 
@@ -90,9 +89,8 @@ def refine_centroids(data_points, centroids, num_its):
         centroids_after = [x.cluster for x in data_points]
 
         if centroids_before == centroids_after:
-            #print('Done early', i)
+            # print('Done early', i)
             break
-
 
         curr_centroids = update_centroids(data_points, curr_centroids)
         centroids_before = centroids_after
@@ -101,15 +99,15 @@ def refine_centroids(data_points, centroids, num_its):
 
 
 def calculate_intra_cluster_dist(data_points, centroids):
-
     avicd = 0
     for i in range(len(data_points)):
         p = data_points[i]
         centroid_p = centroids[p.cluster]
 
-        avicd =+ point_dist(p, DataPoint(centroid_p))
+        avicd = + point_dist(p, DataPoint(centroid_p))
 
     return avicd
+
 
 def show_clusters(data_points, refined_centroids):
     x = []
@@ -125,8 +123,9 @@ def show_clusters(data_points, refined_centroids):
     fix, axs = plt.subplots(2)
     axs[0].scatter(x, y)
     axs[1].scatter(x, y, c=centroids)
-    axs[1].scatter([i[0] for i in refined_centroids], [i[1] for i in refined_centroids])
+    axs[1].scatter([i[0] for i in refined_centroids], [i[1] for i in refined_centroids], c='red')
     plt.show()
+
 
 def single_test(num_centroids, plot_data=False):
     print(num_centroids)
@@ -144,18 +143,12 @@ def single_test(num_centroids, plot_data=False):
 
 
 if __name__ == "__main__":
-    scree_plot = True
+    scree_plot = False
 
     if not scree_plot:
-        single_test(num_centroids=3)
+        single_test(num_centroids=4, plot_data=True)
     else:
         avicd = [single_test(i) for i in range(1, 11)]
 
         plt.plot(avicd)
         plt.show()
-
-
-
-
-
-
