@@ -1,50 +1,59 @@
 # Import the necessary modules and libraries
+import math
+
 import numpy as np
 from sklearn.tree import DecisionTreeRegressor
 import matplotlib.pyplot as plt
 
 # Create a random dataset
 rng = np.random.RandomState(1)
-X = np.sort(6.3 * rng.rand(100, 1), axis=0)
+X_sklearn = np.sort(6.3 * rng.rand(100, 1), axis=0)
+X = X_sklearn.squeeze()
 y = np.sin(X).ravel()
 y += 0.3 * (0.5 - rng.rand(len(X)))
 
-yreg = []
-def sklearn_tree_regressor_test():
+def sklearn_tree_regressor_test(max_depth):
     # Fit regression model
-    regr_1 = DecisionTreeRegressor(max_depth=2)
-    regr_2 = DecisionTreeRegressor(max_depth=5)
-    regr_1.fit(X, y)
-    regr_2.fit(X, y)
+    regr_1 = DecisionTreeRegressor(max_depth=max_depth)
+    regr_1.fit(X_sklearn, y)
 
     # Predict
-    y_1 = regr_1.predict(X)
-    y_2 = regr_2.predict(X)
+    y_1 = regr_1.predict(X_sklearn)
 
-    return y_1, y_2
+    return y_1
 
-def plot_results(y_1, y_2, y_our):
+def plot_results(axs, depth):
     # Plot the results
-    plt.figure()
 
-    if y_our is not None:
-        plt.plot(X, y_our, color="red", label="My Regression Tree")
+    y_sklearn = sklearn_tree_regressor_test(depth)
 
-    plt.scatter(X, y, s=20, edgecolor="black",
+    yreg = np.zeros(len(y))
+    My_TreeRegressor(y, 0, len(y)-1, depth, yreg)
+
+    axs.scatter(X, y, s=20, edgecolor="black",
                 c="darkorange", label="data")
-    plt.plot(X, y_1, color="cornflowerblue",
-             label="maxdepth=2", linewidth=2)
-    plt.plot(X, y_2, color="yellowgreen", label="maxdepth=5", linewidth=2)
-    plt.xlabel("data")
-    plt.ylabel("target")
-    plt.title("Decision Tree Regression")
-    plt.legend()
+
+    axs.plot(X, yreg, color="red", label="MyTree Maxdepth="+str(depth), linewidth=2)
+
+    axs.plot(X, y_sklearn, color="yellowgreen", label="maxdepth="+str(depth), linewidth=2)
+
+    axs.legend()
+
+def comparison_sklearn_our(min_depth, max_depth):
+
+    num_plots = max_depth - min_depth + 1
+
+
+    fig, axs = plt.subplots(num_plots, figsize=(10, math.ceil(num_plots * 2.5)))
+    fig.tight_layout()
+    for i in range(num_plots):
+        plot_results(axs[i], min_depth + i)
+
+
     plt.show()
 
 
-def My_TreeRegressor(y,il,ir,max_depth,level=0):
-    global yreg
-    if (level==0): yreg=np.zeros(len(y))
+def My_TreeRegressor(y, il, ir, max_depth, yreg, level=0):
 
     if (level==max_depth):
         yreg[il:ir]=np.mean(y[il:ir])
@@ -74,16 +83,10 @@ def My_TreeRegressor(y,il,ir,max_depth,level=0):
     yreg[indices_left] = vl
     yreg[indices_right] = vr
 
-    My_TreeRegressor(y,il,indices_left[-1],max_depth,level+1)
-    My_TreeRegressor(y,indices_right[0],ir,max_depth,level+1)
-
-
-
+    My_TreeRegressor(y,il,indices_left[-1],max_depth,yreg,level+1)
+    My_TreeRegressor(y,indices_right[0],ir,max_depth,yreg,level+1)
 
 
 if __name__ == "__main__":
-    y1, y2 = sklearn_tree_regressor_test()
-    X = X.squeeze()
-    My_TreeRegressor(y,0,len(y)-1,10)
-    plot_results(y1, y2, yreg)
+    comparison_sklearn_our(2, 6)
 
